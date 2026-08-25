@@ -24,21 +24,12 @@ for R in "${REPOS[@]}"; do
   done
   gh api -X POST "repos/aity-cloud/drive-$R/keys" -f title="$TITLE" -f key="$(cat "$R.pub")" -F read_only=false \
     --jq '"  drive-'"$R"': deploy key \(.id) read_only=\(.read_only)"'
-  python3 - "$R" > payload.json <<'PY'
-import sys, json
-r = sys.argv[1]
-print(json.dumps({"key": "GITHUB_MIRROR_KEY", "variable_type": "file", "protected": True, "masked": False, "raw": True,
-  "description": "ed25519 private key; write deploy key on github.com/aity-cloud/drive-%s; read only by ci/mirror.yml" % r,
-  "value": open(r).read()}))
-PY
-  # glab api cannot POST a JSON body (--input is sent with the wrong content
-  # type -> 415) and exits 0 on a 404, so the variables API is called with curl.
-  TOKEN=${GITLAB_TOKEN:-$(glab config get token --host gitlab.com)}
-  API="https://gitlab.com/api/v4/projects/aity-cloud%2Fdrive%2F$R/variables"
-  CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "PRIVATE-TOKEN: $TOKEN" "$API/GITHUB_MIRROR_KEY")
-  if [ "$CODE" = "200" ]; then METHOD=PUT; URL="$API/GITHUB_MIRROR_KEY"; VERB=rotated; else METHOD=POST; URL="$API"; VERB=created; fi
-  curl -sf -X "$METHOD" -H "PRIVATE-TOKEN: $TOKEN" -H 'Content-Type: application/json' --data @payload.json "$URL" \
-    | python3 -c "import sys,json;d=json.load(sys.stdin);print('  drive/$R: GITHUB_MIRROR_KEY $VERB (type=%s protected=%s)'%(d['variable_type'],d['protected']))"
-  shred -u "$R" "$R.pub" payload.json
+  # glab variable set is the supported way in (glab api cannot POST JSON and
+  # its stored OAuth token is not a PRIVATE-TOKEN, so curl gets 401).
+  # Rotation = delete + set; delete is allowed to fail on first mint.
+  glab variable delete GITHUB_MIRROR_KEY -R "aity-cloud/drive/$R" >/dev/null 2>&1 && VERB=rotated || VERB=created
+  glab variable set GITHUB_MIRROR_KEY -R "aity-cloud/drive/$R" --type file --protected --raw < "$R" >/dev/null
+  echo "  drive/$R: GITHUB_MIRROR_KEY $VERB (file, protected)"
+  shred -u "$R" "$R.pub"
 done
 echo "done: push to main (or a tag) in each repo now runs mirror:github"
