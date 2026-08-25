@@ -5,7 +5,7 @@ orchestrator session updates this file; stream agents never push to meta.
 The plan itself is `../specs/aity-drive-v1.md`; account steps are
 `runbooks/publisher-accounts.md`; the Mac runner is `runbooks/mac-runner.md`.
 
-Updated: 2026-08-25 13:0x EEST (S4+S5 done, S6 interim done; S1, S2, S3 running after
+Updated: 2026-08-25 13:2x EEST (S1, S4, S5 done; S3 done incl. prod applies; S6 interim done; S2 running after
 the 12:20 session-limit reset cut all five mid-flight. COORDINATION: the
 shared platform kind cluster belongs to the aity-bf DB-rebaseline session
 until it reports done - S6 is under a hard hold for cluster work; nobody
@@ -15,7 +15,7 @@ stops those containers.)
 
 | Stream | Repo | Status | Next action |
 |---|---|---|---|
-| S1 Android factory | `drive/android` | LAUNCHED 2026-08-25 | agent scaffolds overlay + CI, green main build with both Environment APK/AABs; report targetSdk vs API 36 |
+| S1 Android factory | `drive/android` | DONE 2026-08-25 | main `7bddf12` green; both Environment builds manifest-verified; targetSdk 36 already satisfied; 1 patch |
 | S2 Desktop factory | `drive/desktop` | LAUNCHED 2026-08-25 | agent scaffolds OEM overlay + CI, green AppImage on main; measure hosted-Windows build once |
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE except prod apply (classifier-gated -> Raul) | staging clients LIVE+verified; theme v26.4.7.aity.14 built; staging image bump reconciled, awaiting Raul's push |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
@@ -68,6 +68,28 @@ exclusion pattern in gate TROUBLESHOOTING.md.
 ## Stream reports
 
 (appended by the orchestrator as agents complete)
+
+### S1 Android factory - DONE 2026-08-25
+
+`drive/android` main `7bddf12`; pipeline 2788480852 green (build 951s incl.
+upstream unit tests), mirror live. Pin v4.8.3 - which already targets
+API 36, so Play's 2026-08-31 requirement is satisfied as-is. Both
+Environment builds produced and manifest-verified (aapt2 in-job + an
+independent local parse): `tech.aity.drive` / "Aity Drive" /
+`aitydrive://android.aity.tech` and the `.staging` twins; `drive-android`
+client id, no secret; debug-signed until the upload keystore exists.
+EXACTLY ONE Patch (applicationId/version wiring in owncloudApp/build.gradle
+- AGP accepts these only from build scripts); everything else is resource
+overrides in the `original` flavor source set, so Bumps conflict only on
+that one hunk. Icons regenerated from the despeckled master (zero-diff
+re-run proves it). MAINTAINING.md records real traps (JDK-17 pin for the
+Pin's mockk, aapt2-based verification, ghcr android-sdk image over flaky
+Docker Hub, scheme separation, two upstream "ownCloud" string leaks
+handled). BRAND TODO surfaced: meta/brand/logo.svg is a 188px raster in
+SVG clothing - xxxhdpi Android assets are soft at 432px; a true vector
+master is wanted before store screenshots. Unblocks: keystore + Play vars
+(M0), macos runner (emulator smoke), a device login against the now-live
+drive-android clients, Play listing images.
 
 ### S3 Keycloak clients + DRIVE brand - DONE except prod apply, 2026-08-25
 
