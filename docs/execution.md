@@ -17,7 +17,7 @@ stops those containers.)
 |---|---|---|---|
 | S1 Android factory | `drive/android` | DONE 2026-08-25 | main `7bddf12` green; both Environment builds manifest-verified; targetSdk 36 already satisfied; 1 patch |
 | S2 Desktop factory | `drive/desktop` | LAUNCHED 2026-08-25 | agent scaffolds OEM overlay + CI, green AppImage on main; measure hosted-Windows build once |
-| S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE except prod apply (classifier-gated -> Raul) | staging clients LIVE+verified; theme v26.4.7.aity.14 built; staging image bump reconciled, awaiting Raul's push |
+| S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE 2026-08-25 | clients + phone requirement + .14 theme LIVE and verified in BOTH environments |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
 | S5 iOS factory (authoring) | `drive/ios` | DONE 2026-08-25 | main `adf5836` (despeckled assets), lint+mirror green; Xcode side awaits the Mac runner |
 | S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | INTERIM DONE - awaiting cluster slot | branch `de770184` pushed; spec 10 was green both viewports pre-freeze; official run + Raul's merge call remain |
@@ -43,7 +43,7 @@ stops those containers.)
   authorization (2026-08-25, "do 1-4"): (a) prod tofu apply DONE - 9 drive
   clients created via the gate port-forward and verified live (PKCE S256,
   refresh tokens on, std flow only); (b) gate-staging reconcile pushed
-  (`a9a74d8`), staging Keycloak rolling to .14; (c) prod gate .14 bump PUSHED (`9c997ae`) after staging verified 3/3 pods on the .14 digest; prod rollout watched; (d) phone requirement `0870290`
+  (`a9a74d8`), staging Keycloak rolling to .14; (c) prod gate .14 ROLLED OUT and verified (3/3 pods on the .14 digest, drive-android login page 200 with correct client context); (d) phone requirement `0870290`
   APPLIED to BOTH realms per Raul ("we need it") - phoneNumber now
   required for role user; note: Keycloak's VerifyProfile action may prompt
   existing phone-less users at next login
