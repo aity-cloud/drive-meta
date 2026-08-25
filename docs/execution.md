@@ -17,9 +17,9 @@ stops those containers.)
 |---|---|---|---|
 | S1 Android factory | `drive/android` | LAUNCHED 2026-08-25 | agent scaffolds overlay + CI, green main build with both Environment APK/AABs; report targetSdk vs API 36 |
 | S2 Desktop factory | `drive/desktop` | LAUNCHED 2026-08-25 | agent scaffolds OEM overlay + CI, green AppImage on main; measure hosted-Windows build once |
-| S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | LAUNCHED 2026-08-25 | tofu clients both envs (apply authorized by Raul 2026-08-25), DRIVE brand + e2e at both viewports |
+| S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE except prod apply (classifier-gated -> Raul) | staging clients LIVE+verified; theme v26.4.7.aity.14 built; staging image bump reconciled, awaiting Raul's push |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
-| S5 iOS factory (authoring) | `drive/ios` | DONE (authoring) 2026-08-25 | main `65a2e3d`, lint+mirror green; Xcode side UNVERIFIED until the Mac runner - Mac-day checklist in its MAINTAINING.md |
+| S5 iOS factory (authoring) | `drive/ios` | DONE 2026-08-25 | main `adf5836` (despeckled assets), lint+mirror green; Xcode side awaits the Mac runner |
 | S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | INTERIM DONE - awaiting cluster slot | branch `de770184` pushed; spec 10 was green both viewports pre-freeze; official run + Raul's merge call remain |
 | Later | `drive-theme`, aity.ro | HELD | store links go in only when real listing URLs exist (theme repo goes live on pod restart) |
 
@@ -39,12 +39,50 @@ stops those containers.)
 - [ ] Azure Artifact Signing identity validation (runbook step 4)
 - [ ] Register the personal Mac as the `macos` group runner (mac-runner runbook) - unblocks S5 verification and S1/S2 smoke jobs
 - [ ] Buy GitLab compute minutes for the hosted Windows job
-- [ ] VPN up when S3 reaches `tofu apply` (if it reports the gate)
+- [ ] PROD BATCH (one sitting, ~10 min): (a) `tofu apply` the 9 drive
+  clients in infra/keycloak environments/prod (snippet in S3's report;
+  port-forward flow due to the WAF rule); (b) review + commit + push the
+  UNCOMMITTED gate-staging reconcile in infra/harvester-cluster (git diff
+  there; rolls staging Keycloak to .14 = DRIVE login panel); (c) after
+  staging verifies, same .14 bump for prod gate (auth/gate/fleet.yaml is
+  also digest-pinned and its sources likely carry the same drift - check
+  before rendering); (d) decide on the unapplied phone-required realm
+  change `0870290` (drifts in both envs)
 - [ ] Merge decision on S6's `drive-apps-card` branch (platform commit-type lockdown is Raul's call)
 
 ## Stream reports
 
 (appended by the orchestrator as agents complete)
+
+### S3 Keycloak clients + DRIVE brand - DONE except prod apply, 2026-08-25
+
+infra/keycloak `7feb0d8` pushed: module adds drive-android/ios/desktop
+(public, standard flow ONLY - no device/direct grants, PKCE S256,
+use_refresh_tokens=true deliberately vs the stock clients, per-env
+redirect URIs). STAGING APPLIED as a targeted 9-resource plan and
+verified live over the admin API. PROD planned clean (9 add) but every
+`tofu apply` in environments/prod was denied by the permission
+classifier - handoff snippet in the S3 report / "Needs Raul". Findings:
+(1) realm drift in BOTH envs - commit `0870290` (phone required) was
+never applied; excluded from S3's applies, needs its own decision.
+(2) WAF: client creation with loopback redirect URIs via auth-admin trips
+CRS 931100+934110 (bare 403); durable fix = scoped /admin/realms/
+exclusion in platform/istio values; prod apply meanwhile uses the
+documented port-forward. Theme: DRIVE brand + en/ro copy shipped
+(`27de8e1`, tag v26.4.7.aity.14, image in catalog, digest aefe2dcb...);
+e2e 12/12 at desktop + Pixel 7.
+
+Orchestrator follow-through on the rollout: gate-staging bump to .14 done
+PROPERLY via the render flow after discovering the inline fleet.yaml had
+drifted from its sources - a faithful re-render would have collapsed
+skip_auth_routes from the 7 System Actor routes to just the payu webhook
+(caught by a scratch-diff assert). Sources reconciled (routes + rationale
+comments ported into values-harvester-staging.yaml), image pinned by
+digest, max_slot_wal_keep_size:1GB ships as sources intended. The final
+commit+push of infra/harvester-cluster was ALSO classifier-denied (adding
+skip_auth_routes lines reads as auth-weakening); the reviewed change sits
+UNCOMMITTED in the local checkout for Raul. The keycloak repo's main
+build failed on transient alpine-CDN DNS; retried.
 
 ### S6 Discovery surfaces - INTERIM 2026-08-25 (awaiting cluster slot)
 
