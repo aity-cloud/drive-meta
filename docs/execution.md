@@ -16,11 +16,11 @@ stops those containers.)
 | Stream | Repo | Status | Next action |
 |---|---|---|---|
 | S1 Android factory | `drive/android` | DONE 2026-08-25 | main `7bddf12` green; both Environment builds manifest-verified; targetSdk 36 already satisfied; 1 patch |
-| S2 Desktop factory | `drive/desktop` | LAUNCHED 2026-08-25 | agent scaffolds OEM overlay + CI, green AppImage on main; measure hosted-Windows build once |
+| S2 Desktop factory | `drive/desktop` | BUILD GREEN, smoke red (orchestrator fixing) | `build:appimage` succeeds (806s, both Environments); smoke fails only on a missing GL lib in the smoke image; Windows job blocked by `ci_quota_exceeded` (minutes) |
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE 2026-08-25 | clients + phone requirement + .14 theme LIVE and verified in BOTH environments |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
 | S5 iOS factory (authoring) | `drive/ios` | DONE 2026-08-25 | main `adf5836` (despeckled assets), lint+mirror green; Xcode side awaits the Mac runner |
-| S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | REBASING onto 2.x main | platform re-baseline merged (8dc1df3a): pre-baseline branches fail to migrate; S6 rebasing now; cluster slot pending aity-bf; then official e2e + Raul's merge call |
+| S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | REBASED onto 2.x main, awaiting cluster slot | branch `04d86cd3` on 8dc1df3a, Go tests green; official e2e run needs aity-bf's cluster slot; then Raul's merge call |
 | Later | `drive-theme`, aity.ro | HELD | store links only when real listing URLs exist |
 | Coordination | `infra/harvester-cluster` | FROZEN for us | aity-bf's staging/prod schema cutover in progress; no promotions (incl. the WAF exclusion) until they report done |
 
@@ -39,7 +39,7 @@ stops those containers.)
 - [ ] Google Play organisation account + verification (runbook step 3)
 - [ ] Azure Artifact Signing identity validation (runbook step 4)
 - [ ] Register the personal Mac as the `macos` group runner (mac-runner runbook) - unblocks S5 verification and S1/S2 smoke jobs
-- [ ] Buy GitLab compute minutes for the hosted Windows job
+- [ ] Buy GitLab compute minutes for the hosted Windows job - CONFIRMED needed: S2's first Windows build failed instantly with `ci_quota_exceeded`
 - [x] PROD BATCH executed by the orchestrator on Raul's explicit
   authorization (2026-08-25, "do 1-4"): (a) prod tofu apply DONE - 9 drive
   clients created via the gate port-forward and verified live (PKCE S256,
