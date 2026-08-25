@@ -88,6 +88,7 @@ upstream, no Aity commits) is archived with a README pointer.
 | App name | Aity Drive | Aity Drive | Aity Drive |
 | Production id | `tech.aity.drive` | `tech.aity.drive` + `.fileprovider`, `.fileprovider-ui`, `.intents`, `.share`, `.action`; app group `group.tech.aity.drive` | `APPLICATION_REV_DOMAIN tech.aity.drive`, shortname `aitydrive`, executable `aity-drive` |
 | Staging id | `tech.aity.drive.staging` | `tech.aity.drive.staging` (+ same suffixes, group `group.tech.aity.drive.staging`) | shortname `aitydrive-staging`, name "Aity Drive (staging)", own config dir |
+| macOS app group | - | - | `<TEAMID>.tech.aity.drive` (`.staging`): macOS 15+ requires Team-ID-prefixed groups or a Developer ID provisioning profile; the Factory ships both |
 | Redirect (prod) | `aitydrive://android.aity.tech` | `aitydrive://ios.aity.tech` | `http://127.0.0.1:*`, `http://localhost:*` |
 | Redirect (staging) | `aitydrive-staging://android.aity.works` | `aitydrive-staging://ios.aity.works` | same loopback |
 | Keycloak client (per realm) | `drive-android` | `drive-ios` | `drive-desktop` |
@@ -237,6 +238,10 @@ fallback is a Windows Server VM on Harvester registered as `windows`.
 - Hosted Windows runner size (above).
 - No Apple/Google accounts yet; D-U-N-S and organisation verification can
   take weeks.
+- Google Play requires new apps to target API 36 from 2026-08-31; the
+  Android Pin's `targetSdk` is checked in S1 before the first upload.
+- Windows signing can run on the Linux runner with Jsign against Azure
+  Artifact Signing, keeping the hosted Windows job to build-only.
 
 ## Order of work
 
@@ -245,8 +250,9 @@ fallback is a Windows Server VM on Harvester registered as `windows`.
   the `macos` runner - Raul's personal Mac as a transitional runner
   (`docs/runbooks/mac-runner.md`), replaced by a Mac mini later without
   any repo change; `drive/` subgroup, `meta`, `certificates` and the three
-  empty factory repos; GitHub mirrors created empty (DONE 2026-08-25),
-  mirror credentials (pending the GitHub org deploy-key policy).
+  empty factory repos; GitHub mirrors created and wired with per-repo
+  write deploy keys, `mirror:github` verified end-to-end on meta (DONE
+  2026-08-25).
 - **M1** `android` Factory (Linux only, fastest to prove the Overlay
   model): Keycloak `drive-android` in staging, materialize + branding +
   gradle patch, smoke, Play internal. Then Keycloak prod + production
