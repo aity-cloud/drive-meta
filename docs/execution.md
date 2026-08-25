@@ -39,15 +39,15 @@ stops those containers.)
 - [ ] Azure Artifact Signing identity validation (runbook step 4)
 - [ ] Register the personal Mac as the `macos` group runner (mac-runner runbook) - unblocks S5 verification and S1/S2 smoke jobs
 - [ ] Buy GitLab compute minutes for the hosted Windows job
-- [ ] PROD BATCH (one sitting, ~10 min): (a) `tofu apply` the 9 drive
-  clients in infra/keycloak environments/prod (snippet in S3's report;
-  port-forward flow due to the WAF rule); (b) review + commit + push the
-  UNCOMMITTED gate-staging reconcile in infra/harvester-cluster (git diff
-  there; rolls staging Keycloak to .14 = DRIVE login panel); (c) after
-  staging verifies, same .14 bump for prod gate (auth/gate/fleet.yaml is
-  also digest-pinned and its sources likely carry the same drift - check
-  before rendering); (d) decide on the unapplied phone-required realm
-  change `0870290` (drifts in both envs)
+- [x] PROD BATCH executed by the orchestrator on Raul's explicit
+  authorization (2026-08-25, "do 1-4"): (a) prod tofu apply DONE - 9 drive
+  clients created via the gate port-forward and verified live (PKCE S256,
+  refresh tokens on, std flow only); (b) gate-staging reconcile pushed
+  (`a9a74d8`), staging Keycloak rolling to .14; (c) prod gate .14 bump
+  queued behind staging verification; (d) phone requirement `0870290`
+  APPLIED to BOTH realms per Raul ("we need it") - phoneNumber now
+  required for role user; note: Keycloak's VerifyProfile action may prompt
+  existing phone-less users at next login
 - [ ] Merge decision on S6's `drive-apps-card` branch (platform commit-type lockdown is Raul's call)
 
 ## Stream reports
