@@ -20,7 +20,7 @@ stops those containers.)
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | LAUNCHED 2026-08-25 | tofu clients both envs (apply authorized by Raul 2026-08-25), DRIVE brand + e2e at both viewports |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
 | S5 iOS factory (authoring) | `drive/ios` | LAUNCHED 2026-08-25 | scaffold overlay/fastlane/CI, everything `macos`-tagged and manual; UNVERIFIED until the Mac runner exists |
-| S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | LAUNCHED 2026-08-25 | Magistrate card + email footers + phone-viewport e2e; branch only, NO main push |
+| S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | INTERIM DONE - awaiting cluster slot | branch `de770184` pushed; spec 10 was green both viewports pre-freeze; official run + Raul's merge call remain |
 | Later | `drive-theme`, aity.ro | HELD | store links go in only when real listing URLs exist (theme repo goes live on pod restart) |
 
 ## Done
@@ -45,6 +45,32 @@ stops those containers.)
 ## Stream reports
 
 (appended by the orchestrator as agents complete)
+
+### S6 Discovery surfaces - INTERIM 2026-08-25 (awaiting cluster slot)
+
+Branch `drive-apps-card` pushed, commit `de770184` (13 files, +524/-4),
+main untouched. Dashboard card `DriveAppsCard.vue` with official vendored
+Apple/Google badges (RO artwork), App Store badge ghosted "In curand"
+while its URL is empty; URLs are runtime-config passthroughs
+(`NUXT_PUBLIC_DRIVE_{ANDROID,IOS,DESKTOP}_URL` / `MAGISTRATE_DRIVE_*`)
+with real defaults in the component - a nuxt.config default gets
+flattened by empty env at image build (found live, fixed). Activation +
+invite emails gain a plain-text app-links footer via
+`app/sdk/activationmail` `WithAppLinks()` (the mail path is text/plain
+end to end; 3 new unit tests green). New e2e `10-drive-apps.spec.ts`
+asserts links, coming-soon state, no-overflow and 44px targets at desktop
+AND Pixel 7 (first mobile fence in that suite); ran GREEN both viewports
+pre-freeze against `0.0.1-ef4f9545`, which differs from the pushed commit
+by one non-asserted CSS value. Remaining: official spec-10 run on the
+kind cluster once aity-bf frees it (image-swap only, NO dev-apply/helm -
+the cluster's release/DB are aity-bf's 2.xx rehearsal), then Raul's merge
+decision. Extras under the excellence rule: fixed a pre-existing
+`.aity-split` min-width:0 grid bug (rail squeezed / phone overflow),
+added `**/pnpm-lock.yaml` + `**/.output/` to .dockerignore (lockfile leak
+failed the supply-chain check); reported-not-touched: same exposure in
+dockerfile.console/onboarding, em dashes in makefile comments, node 22+
+needed locally. Cluster left exactly as found (aity-bf's 0.0.1-45af57a6
+restored by them; three inert S6 images remain loaded on the node).
 
 ### S4 Renovate - DONE 2026-08-25
 
