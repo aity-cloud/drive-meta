@@ -1,0 +1,47 @@
+# Mirror job for every repo of the drive subgroup (ADR 0004).
+#
+# Pushes main + all tags of the GitLab repo to its public GitHub twin
+# github.com/aity-cloud/drive-<name> over SSH, using a per-repo WRITE deploy
+# key stored as the protected file variable GITHUB_MIRROR_KEY (minted by
+# scripts/mint-mirror-keys.sh in meta). GitHub's host keys are pinned from
+# https://api.github.com/meta, not learned on first use.
+#
+# The GitHub side is a consumer: this job is the ONLY writer. It runs on
+# main pushes and on tags; MR pipelines never mirror. If the variable is
+# absent (repo not wired yet) the job does not exist at all.
+#
+# Include from a repo's .gitlab-ci.yml:
+#   include:
+#     - project: aity-cloud/drive/meta
+#       ref: main
+#       file: ci/mirror.yml
+
+mirror:github:
+  stage: mirror
+  image: alpine/git:2.47.2
+  tags: [docker, shared]
+  variables:
+    GIT_DEPTH: 0            # full history: the mirror must carry every commit and tag
+    GIT_STRATEGY: clone
+  rules:
+    - if: $GITHUB_MIRROR_KEY == null
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      set -eu
+      MIRROR="git@github.com:aity-cloud/drive-${CI_PROJECT_NAME}.git"
+      mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      cp "$GITHUB_MIRROR_KEY" ~/.ssh/mirror_key && chmod 600 ~/.ssh/mirror_key
+      # host keys as published by https://api.github.com/meta (ssh_keys), pinned
+      cat > ~/.ssh/known_hosts <<'HOSTS'
+      github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+      HOSTS
+      export GIT_SSH_COMMAND="ssh -i ~/.ssh/mirror_key -o IdentitiesOnly=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o StrictHostKeyChecking=yes"
+      git remote add github "$MIRROR"
+      git fetch --quiet origin "+refs/heads/${CI_DEFAULT_BRANCH}:refs/mirror/${CI_DEFAULT_BRANCH}" --tags
+      git push --force github "refs/mirror/${CI_DEFAULT_BRANCH}:refs/heads/${CI_DEFAULT_BRANCH}"
+      git push --force github "refs/tags/*:refs/tags/*"
+      echo "mirrored ${CI_PROJECT_PATH} -> ${MIRROR} (${CI_DEFAULT_BRANCH} + tags)"

@@ -149,7 +149,12 @@ materialize -> build -> smoke -> publish-staging -> promote (manual) -> mirror
 - **promote** (manual, protected tags only): production builds to Play
   production, App Store submission, GitHub Release (installers, source
   tarball) and regenerated update feeds on the mirror's Pages.
-- **mirror**: push-mirror the Factory to its GitHub twin (ADR 0004).
+- **mirror**: the `mirror:github` job from `meta/ci/mirror.yml` (included
+  by every repo of the subgroup) pushes `main` + tags to the GitHub twin
+  over SSH with a per-repo write deploy key held as the protected file
+  variable `GITHUB_MIRROR_KEY` (minted by `meta/scripts/mint-mirror-keys.sh`).
+  No PAT, no user identity, one key per repo, rotation = re-run the script.
+  CI is the only writer of the mirror (ADR 0004).
 
 Secrets (protected + masked, tag-protected refs only): Android upload
 keystore (file variable) + passwords, Play service-account JSON, App Store
@@ -236,9 +241,12 @@ fallback is a Windows Server VM on Harvester registered as `windows`.
 ## Order of work
 
 - **M0** accounts + hardware: D-U-N-S, Apple org enrolment, Play org
-  account, Azure Trusted Signing, Mac mini ordered and registered as the
-  `macos` runner; `drive/` subgroup, `meta` and `certificates` repos;
-  GitHub mirrors created empty.
+  account, Azure Trusted Signing (runbook: `docs/runbooks/publisher-accounts.md`);
+  the `macos` runner - Raul's personal Mac as a transitional runner
+  (`docs/runbooks/mac-runner.md`), replaced by a Mac mini later without
+  any repo change; `drive/` subgroup, `meta`, `certificates` and the three
+  empty factory repos; GitHub mirrors created empty (DONE 2026-08-25),
+  mirror credentials (pending the GitHub org deploy-key policy).
 - **M1** `android` Factory (Linux only, fastest to prove the Overlay
   model): Keycloak `drive-android` in staging, materialize + branding +
   gradle patch, smoke, Play internal. Then Keycloak prod + production
@@ -250,3 +258,26 @@ fallback is a Windows Server VM on Harvester registered as `windows`.
   submission (ADR 0003).
 - **M4** discovery surfaces + Keycloak brand fix + stock-client removal.
 - **M5** Renovate in `meta`, maintenance loop live, first scheduled run.
+
+## Parallel work streams (who can do what, now)
+
+Every stream is a separate repo or a disjoint file set, so they can run
+concurrently on different agents without merge conflicts. Shared truth is
+this spec; a stream that needs a decision not in it stops and asks Raul.
+
+| Stream | Scope (repo) | Can start | Blocked on | Hand-over artefact |
+|---|---|---|---|---|
+| **S1 Android factory** (M1) | `drive/android`: materialize script, `overlay/` (setup.xml, icons, strings, both Environments), the one-line `applicationId` patch, unit tests, `.gitlab-ci.yml` (materialize -> build AAB/APK -> smoke job tagged `macos` -> publish-staging -> promote -> mirror), `fastlane/` with `supply`, `PATCHES.md`, `MAINTAINING.md`, `UPSTREAM.md` | now | Play internal upload waits for the Play account + service account (M0); the emulator smoke waits for the `macos` runner; Keycloak `drive-android` from S3 for a real login | signed-config-free staging APK as a pipeline artefact |
+| **S2 Desktop factory** (M2) | `drive/desktop`: `overlay/` as an `OEM_THEME_DIR` (`OEM.cmake`, `Theme` subclass, icons, both Environments), Craft blueprints/config, `.gitlab-ci.yml` with the Linux AppImage job (Linux runner), the Windows job (`saas-windows-medium-amd64`, unsigned until Azure Trusted Signing), the macOS job (tagged `macos`, unsigned until Developer ID), `owncloudcmd` smoke against staging, update-feed generator for GitHub Pages | now | Signing (M0); macOS job runs only once the `macos` runner exists | AppImage + unsigned Windows installer artefacts; measured Windows build time |
+| **S3 Auth + login brand** (M4 auth part) | `infra/keycloak` tofu: `drive-android|ios|desktop` public PKCE clients in the `aity-realm` module (both environments) with the refresh-token check; `keycloak/themes`: DRIVE brand entry + i18n + e2e at desktop and phone viewports; stock-client removal prepared behind a flag | now | `tofu apply` needs Raul's VPN (staging first, prod after the apps are promoted) | tofu plan output for Raul; theme MR with green e2e |
+| **S4 Meta automation** (M5 + mirror) | `drive/meta`: Renovate config (`autodiscoverFilter: ['aity-cloud/drive/*']`, github-tags watch on `UPSTREAM_TAG`), scheduled pipeline, `docs/ci.md`; verify `mirror:github` end-to-end once keys exist | now | mirror keys (GitHub org deploy-key setting) | weekly Renovate run producing Pin-watch MRs |
+| **S5 iOS factory** (M3) | `drive/ios`: materialize (app + `ios-sdk` submodule at the Pin), `overlay/` (`Branding.plist`, `branding-assets/`, both Environments, six bundle ids + app group), `fastlane/` (match, gym, pilot, deliver, XCUITest smoke on the simulator), `.gitlab-ci.yml` with every job tagged `macos` | once the `macos` runner exists | Signing, TestFlight and App Store need the Apple org account (M0); simulator build + smoke need no account at all (`CODE_SIGNING_ALLOWED=NO`) | simulator smoke green on the Mac runner |
+| **S6 Discovery surfaces** (M4 UI part) | `aity-platform`: Magistrate "Get Aity Drive" card (mobile-ready, phone-viewport e2e), activation/invite email footer; `aity-tech/drive-theme`: `clients.*` links; aity.ro badges | now, with config-driven URLs | real listing URLs after the first store submissions | MR with placeholder URLs behind config |
+| **Raul** (M0) | publisher accounts per `docs/runbooks/publisher-accounts.md`, the `macos` runner per `docs/runbooks/mac-runner.md`, GitHub org deploy-key setting, VPN for tofu applies, buying GitLab minutes, every `promote` | now | - | accounts, runner online |
+
+Ordering hints: S1 and S2 prove the Overlay model on the Linux runner
+first; S3 is the prerequisite for any real login smoke in S1/S2/S5; S4 is
+tiny and unblocks the public mirrors for everything else; S5 waits for the
+Mac. Each stream ends with its `PATCHES.md` honest (ideally empty) and its
+`MAINTAINING.md` recording what actually bit.
+
