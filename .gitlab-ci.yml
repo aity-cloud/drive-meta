@@ -1,6 +1,7 @@
-# meta has no build; it only mirrors itself to github.com/aity-cloud/drive-meta
-# (ADR 0004). Renovate (M5) will be added here as a scheduled job.
-stages: [mirror]
+# meta has no build; it mirrors itself to github.com/aity-cloud/drive-meta
+# (ADR 0004) and runs the weekly Renovate sweep over the subgroup (M5,
+# renovate/config.js; jobs, variables and schedules in docs/ci.md).
+stages: [mirror, renovate]
 
 default:
   tags: [docker, shared]
@@ -12,3 +13,27 @@ workflow:
 
 include:
   - local: ci/mirror.yml
+
+# Renovate CE over the whole subgroup. Runs on the weekly schedule that sets
+# RENOVATE="true", or manually from the web UI; never on plain main pushes
+# (those run only mirror:github). The scheduled pipeline re-runs
+# mirror:github too - an idempotent re-push of refs GitHub already has,
+# kept as a weekly self-heal of the mirror.
+renovate:
+  stage: renovate
+  image: renovate/renovate:44
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $RENOVATE == "true"'
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  variables:
+    RENOVATE_CONFIG_FILE: renovate/config.js
+    LOG_LEVEL: info
+    # Default to the group-inherited GITLAB_TOKEN (api + write_repository,
+    # the semantic-release token): gitlab.com Free cannot mint group access
+    # tokens, so a dedicated bot token is not available. A RENOVATE_TOKEN
+    # variable set on the subgroup takes precedence over this default.
+    RENOVATE_TOKEN: "$GITLAB_TOKEN"
+  script:
+    - test -n "$RENOVATE_TOKEN" || { echo "RENOVATE_TOKEN is required (docs/ci.md)."; exit 1; }
+    - renovate
