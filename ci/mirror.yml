@@ -18,12 +18,15 @@
 
 mirror:github:
   stage: mirror
-  # alpine/git sets ENTRYPOINT ["git"]; without the override the runner's
-  # shell becomes `git sh` (same trap as alpine/helm in custom-oss/ocis).
-  image:
-    name: alpine/git:2.47.2
-    entrypoint: [""]
+  # Catalog alpine + apk, like the platform CI: no Docker Hub pull (the
+  # runner's IPv6 path to registry-1.docker.io flaked), no image entrypoint
+  # quirks (alpine/git's ENTRYPOINT ["git"] turned the runner shell into
+  # `git sh`).
+  image: registry.aity.tech/catalog/library/alpine:3.22
   tags: [docker, shared]
+  retry:
+    max: 2
+    when: [runner_system_failure, api_failure, unknown_failure]
   variables:
     GIT_DEPTH: 0            # full history: the mirror must carry every commit and tag
     GIT_STRATEGY: clone
@@ -36,9 +39,11 @@ mirror:github:
     - |
       set -eu
       MIRROR="git@github.com:aity-cloud/drive-${CI_PROJECT_NAME}.git"
-      command -v ssh >/dev/null 2>&1 || apk add --no-cache openssh-client >/dev/null
+      apk add --no-cache git openssh-client >/dev/null
       mkdir -p ~/.ssh && chmod 700 ~/.ssh
-      cp "$GITHUB_MIRROR_KEY" ~/.ssh/mirror_key && chmod 600 ~/.ssh/mirror_key
+      # `glab variable set` strips the trailing newline from stdin, and OpenSSH
+      # refuses a private key without one ("error in libcrypto"); re-add it.
+      { cat "$GITHUB_MIRROR_KEY"; echo; } > ~/.ssh/mirror_key && chmod 600 ~/.ssh/mirror_key
       # host keys as published by https://api.github.com/meta (ssh_keys), pinned
       cat > ~/.ssh/known_hosts <<'HOSTS'
       github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
