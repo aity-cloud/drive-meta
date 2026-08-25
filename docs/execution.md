@@ -5,7 +5,11 @@ orchestrator session updates this file; stream agents never push to meta.
 The plan itself is `../specs/aity-drive-v1.md`; account steps are
 `runbooks/publisher-accounts.md`; the Mac runner is `runbooks/mac-runner.md`.
 
-Updated: 2026-08-25 (S4 done; S1, S2, S3, S5, S6 running)
+Updated: 2026-08-25 12:35 EEST (S4 done; S1, S2, S3, S5, S6 resumed after
+the 12:20 session-limit reset cut all five mid-flight. COORDINATION: the
+shared platform kind cluster belongs to the aity-bf DB-rebaseline session
+until it reports done - S6 is under a hard hold for cluster work; nobody
+stops those containers.)
 
 ## Streams
 
