@@ -5,7 +5,7 @@ orchestrator session updates this file; stream agents never push to meta.
 The plan itself is `../specs/aity-drive-v1.md`; account steps are
 `runbooks/publisher-accounts.md`; the Mac runner is `runbooks/mac-runner.md`.
 
-Updated: 2026-08-25 12:35 EEST (S4 done; S1, S2, S3, S5, S6 resumed after
+Updated: 2026-08-25 13:0x EEST (S4+S5 done, S6 interim done; S1, S2, S3 running after
 the 12:20 session-limit reset cut all five mid-flight. COORDINATION: the
 shared platform kind cluster belongs to the aity-bf DB-rebaseline session
 until it reports done - S6 is under a hard hold for cluster work; nobody
@@ -19,7 +19,7 @@ stops those containers.)
 | S2 Desktop factory | `drive/desktop` | LAUNCHED 2026-08-25 | agent scaffolds OEM overlay + CI, green AppImage on main; measure hosted-Windows build once |
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | LAUNCHED 2026-08-25 | tofu clients both envs (apply authorized by Raul 2026-08-25), DRIVE brand + e2e at both viewports |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
-| S5 iOS factory (authoring) | `drive/ios` | LAUNCHED 2026-08-25 | scaffold overlay/fastlane/CI, everything `macos`-tagged and manual; UNVERIFIED until the Mac runner exists |
+| S5 iOS factory (authoring) | `drive/ios` | DONE (authoring) 2026-08-25 | main `65a2e3d`, lint+mirror green; Xcode side UNVERIFIED until the Mac runner - Mac-day checklist in its MAINTAINING.md |
 | S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | INTERIM DONE - awaiting cluster slot | branch `de770184` pushed; spec 10 was green both viewports pre-freeze; official run + Raul's merge call remain |
 | Later | `drive-theme`, aity.ro | HELD | store links go in only when real listing URLs exist (theme repo goes live on pod restart) |
 
@@ -71,6 +71,26 @@ failed the supply-chain check); reported-not-touched: same exposure in
 dockerfile.console/onboarding, em dashes in makefile comments, node 22+
 needed locally. Cluster left exactly as found (aity-bf's 0.0.1-45af57a6
 restored by them; three inert S6 images remain loaded on the node).
+
+### S5 iOS factory (authoring) - DONE 2026-08-25
+
+`drive/ios` main `65a2e3d`; pipeline #2788458272 green first try (lint +
+mirror; simulator smoke and TestFlight publish manual by design). Pin
+v12.7.0 + ios-sdk submodule `275bad5`, `.xcode-version` 26.2. Lint proves
+plist validity + identity-table values, ruby/yaml/shell syntax, and a real
+runner-side clone of the Pin with both `materialize.sh --check` runs (5
+replaced files, 7 new, zero patches). Branding hook = `aity_apply_identity`
+fastlane lane, a documented step-for-step transcription of upstream's
+`build_ipa_in_house` (upstream's lane hardcodes their team/ids and has no
+unsigned-simulator path); re-diffing it is a recorded Bump duty. Finding:
+`branding.profile-definitions` has no consumer at this Pin - the flat
+`branding.profile-url`/`profile-allow-url-configuration` keys are the live
+path (used). Open items: the Mac-day checklist (ui-test host, appicon
+under Xcode 26, code-sign identity string), the promote shape for the
+first App Store submission (deliver vs manual - Raul's call at M3), and a
+BRAND DEFECT: meta/brand/logo.svg carries a stray red speck in its
+embedded PNG that propagates into generated assets (orchestrator owns the
+fix; factories regenerate icons after).
 
 ### S4 Renovate - DONE 2026-08-25
 
