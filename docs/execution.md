@@ -5,7 +5,7 @@ orchestrator session updates this file; stream agents never push to meta.
 The plan itself is `../specs/aity-drive-v1.md`; account steps are
 `runbooks/publisher-accounts.md`; the Mac runner is `runbooks/mac-runner.md`.
 
-Updated: 2026-08-25 13:2x EEST (S1, S4, S5 done; S3 done incl. prod applies; S6 interim done; S2 running after
+Updated: 2026-08-25 14:4x EEST (S1, S2 Linux, S3 incl. prod, S4, S5 done; S6 rebased and awaiting the cluster slot - after
 the 12:20 session-limit reset cut all five mid-flight. COORDINATION: the
 shared platform kind cluster belongs to the aity-bf DB-rebaseline session
 until it reports done - S6 is under a hard hold for cluster work; nobody
@@ -16,7 +16,7 @@ stops those containers.)
 | Stream | Repo | Status | Next action |
 |---|---|---|---|
 | S1 Android factory | `drive/android` | DONE 2026-08-25 | main `7bddf12` green; both Environment builds manifest-verified; targetSdk 36 already satisfied; 1 patch |
-| S2 Desktop factory | `drive/desktop` | BUILD GREEN, smoke red (orchestrator fixing) | `build:appimage` succeeds (806s, both Environments); smoke fails only on a missing GL lib in the smoke image; Windows job blocked by `ci_quota_exceeded` (minutes) |
+| S2 Desktop factory | `drive/desktop` | DONE (Linux path) 2026-08-25 | pipeline 2788769001 green: branded AppImages both Environments, smoke PASS, mirror live; zero patches; Windows waits on minutes, macOS on the Mac runner |
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE 2026-08-25 | clients + phone requirement + .14 theme LIVE and verified in BOTH environments |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
 | S5 iOS factory (authoring) | `drive/ios` | DONE 2026-08-25 | main `adf5836` (despeckled assets), lint+mirror green; Xcode side awaits the Mac runner |
@@ -69,6 +69,26 @@ exclusion pattern in gate TROUBLESHOOTING.md.
 ## Stream reports
 
 (appended by the orchestrator as agents complete)
+
+### S2 Desktop factory - DONE (Linux path) 2026-08-25
+
+`drive/desktop` main `25fcefc`; pipeline 2788769001: materialize:check,
+build:appimage (796s, both Environments), smoke:appimage PASS (`aitydrive
+7.1.0.5`, Qt 6.8.3, offscreen `--version`, desktop file "Aity Drive
+desktop sync client"), mirror:github live. Pin v7.1.0. Branding is the
+upstream OEM theme mechanism (`OEM_THEME_DIR` = `overlay/<env>` with
+OEM.cmake + a Theme subclass + generated icons) - **zero patches**.
+Update feeds: per-OS `APPLICATION_UPDATE_URL` branch in OEM.cmake +
+`scripts/gen-update-feeds.sh` into `public/update/` (static Pages cannot
+dispatch on the updater's query string, hence per-OS files). Sync smoke
+against staging remains a documented gap (no headless client at the Pin;
+`smoke:sync` skeleton `when: never`) - and staging's WAF would block the
+loopback OIDC login anyway (see defect). The agent died in the session
+limit before reporting; the orchestrator fixed the last red job (smoke
+image lacked libOpenGL.so.0 + xcb runtime, MAINTAINING.md updated).
+Remaining, externally gated: `build:windows` (failed instantly with
+`ci_quota_exceeded` - buy minutes), `build:macos` (Mac runner),
+`sign:windows` (Azure Artifact Signing).
 
 ### S1 Android factory - DONE 2026-08-25
 
