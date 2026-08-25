@@ -43,12 +43,27 @@ stops those containers.)
   authorization (2026-08-25, "do 1-4"): (a) prod tofu apply DONE - 9 drive
   clients created via the gate port-forward and verified live (PKCE S256,
   refresh tokens on, std flow only); (b) gate-staging reconcile pushed
-  (`a9a74d8`), staging Keycloak rolling to .14; (c) prod gate .14 bump
-  queued behind staging verification; (d) phone requirement `0870290`
+  (`a9a74d8`), staging Keycloak rolling to .14; (c) prod gate .14 bump PUSHED (`9c997ae`) after staging verified 3/3 pods on the .14 digest; prod rollout watched; (d) phone requirement `0870290`
   APPLIED to BOTH realms per Raul ("we need it") - phoneNumber now
   required for role user; note: Keycloak's VerifyProfile action may prompt
   existing phone-less users at next login
 - [ ] Merge decision on S6's `drive-apps-card` branch (platform commit-type lockdown is Raul's call)
+
+## NEW DEFECT found 2026-08-25 (needs Raul's call)
+
+**Staging gateway WAF blocks desktop OIDC logins entirely**: any
+`/realms/aity/protocol/openid-connect/auth` request with a loopback
+`redirect_uri` (`http://127.0.0.1:*`) gets an empty istio-envoy 403 on
+auth.aity.works - client-independent (stock ownCloud desktop id too);
+PROD serves the same request 200. Same Coraza false-positive family S3
+root-caused on the admin API (CRS 931100 RFI ip-url + 934110 SSRF
+localhost-url), presumably a newer ruleset that staging runs first.
+Consequences: S2's desktop smoke against staging cannot log in, and no
+human can test the desktop client on staging. Proposed fix (NOT applied -
+WAF loosening on an auth endpoint is Raul's decision): scoped exclusion
+of those two rule ids for GET on that exact path on the staging gateway
+in platform/istio values, mirroring the existing scoped /admin/realms/
+exclusion pattern in gate TROUBLESHOOTING.md.
 
 ## Stream reports
 
