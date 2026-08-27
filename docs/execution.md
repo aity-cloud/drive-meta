@@ -20,7 +20,7 @@ stops those containers.)
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE 2026-08-25 | clients + phone requirement + .14 theme LIVE and verified in BOTH environments |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
 | S5 iOS factory | `drive/ios` | BUILDS ON A REAL MAC 2026-08-27 | simulator smoke GREEN on the runner (job 16140937726); three factory bugs fixed; signing/TestFlight still needs the Apple team |
-| S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | REBASED onto 2.x main, awaiting cluster slot | branch `04d86cd3` on 8dc1df3a, Go tests green; official e2e run needs aity-bf's cluster slot; then Raul's merge call |
+| S6 Discovery surfaces | `aity-platform` | DONE 2026-08-27 | merged to main (`de6f3521`); `10-drive-apps.spec.ts` GREEN at both viewports on the consolidated minikube stack, verified by the aity-6e session |
 | Later | `drive-theme`, aity.ro | HELD | store links only when real listing URLs exist |
 | Coordination | `infra/harvester-cluster` | FROZEN for us | aity-bf's staging/prod schema cutover in progress; no promotions (incl. the WAF exclusion) until they report done |
 
