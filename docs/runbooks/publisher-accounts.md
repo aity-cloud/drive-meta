@@ -228,8 +228,14 @@ factory projects (never the mirrors, never the meta repo):
 
 ## 6. Done / not done (keep current)
 
-- [ ] D-U-N-S obtained, number recorded here
-- [ ] Apple Developer Program organisation active; DSA trader + EU invoicing set
+- [~] D-U-N-S: requested 2026-08-25. NOTE: Raul already holds an
+      **individual** Apple Developer account; Apple is converting it to an
+      **organization** once the D-U-N-S lands. That conversion, not a fresh
+      enrolment, is the path here - the org entity name becomes the App
+      Store seller name, and only after it completes do the organization-only
+      artefacts exist (Developer ID certificates for macOS, Team API keys
+      with org roles, the DSA trader form)
+- [ ] Apple account CONVERTED to organisation (in progress); DSA trader + EU invoicing set
 - [ ] App Store Connect Team API key in CI variables
 - [ ] Identifiers + app groups registered; match store bootstrapped
 - [ ] Google Play organisation verified; service account invited

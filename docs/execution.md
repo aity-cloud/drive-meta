@@ -34,12 +34,12 @@ stops those containers.)
 
 ## Needs Raul (the only human steps)
 
-- [ ] D-U-N-S request (start FIRST - gates Apple, Google, Azure; runbook step 1)
+- [x] D-U-N-S requested 2026-08-25; Apple is converting Raul's EXISTING individual developer account to an organisation once it lands (not a fresh enrolment)
 - [ ] Apple Developer Program org enrolment + DSA trader + EU invoicing (runbook step 2)
 - [ ] Google Play organisation account + verification (runbook step 3)
 - [ ] Azure Artifact Signing identity validation (runbook step 4)
-- [ ] Register the personal Mac as the `macos` group runner (mac-runner runbook) - unblocks S5 verification and S1/S2 smoke jobs
-- [ ] Buy GitLab compute minutes for the hosted Windows job - CONFIRMED needed: S2's first Windows build failed instantly with `ci_quota_exceeded`
+- [ ] Register the personal Mac as the `macos` group runner - PASTE-READY AGENT PROMPT: `docs/runbooks/mac-runner-agent-prompt.md` (hand it to Claude Code on the Mac; it creates the runner via the API, installs Xcode per the Pin, registers the LaunchAgent and proves it with a real job)
+- [ ] TODO NEXT WEEK (Raul, 2026-08-25): buy GitLab compute minutes - S2's Windows build fails instantly with `ci_quota_exceeded`; everything else in S2 is green without it
 - [x] PROD BATCH executed by the orchestrator on Raul's explicit
   authorization (2026-08-25, "do 1-4"): (a) prod tofu apply DONE - 9 drive
   clients created via the gate port-forward and verified live (PKCE S256,
@@ -48,7 +48,7 @@ stops those containers.)
   APPLIED to BOTH realms per Raul ("we need it") - phoneNumber now
   required for role user; note: Keycloak's VerifyProfile action may prompt
   existing phone-less users at next login
-- [ ] Merge decision on S6's `drive-apps-card` branch (platform commit-type lockdown is Raul's call)
+- [x] S6 branch MERGED to platform main 2026-08-25 on Raul's instruction (`de6f3521`, fast-forward, `fix:` type); cluster e2e was green pre-freeze at both viewports, the official post-rebase run is still owed when the kind cluster frees up
 
 ## NEW DEFECT found 2026-08-25 (needs Raul's call)
 
