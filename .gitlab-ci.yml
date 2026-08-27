@@ -59,6 +59,57 @@ contract:production:
         --base-url https://drive.aity.tech \
         --issuer   https://auth.aity.tech/realms/aity
 
+# Tier 1.5: can each Client's OWN Keycloak client actually sign a user in?
+# The contract test above authenticates with a password grant on the `drive`
+# client, because that is the only client the realm allows it on - so it says
+# nothing about `drive-ios`, `drive-android` and `drive-desktop`, which is
+# what the apps use. This walks the real authorization-code + PKCE flow for
+# each of them, checks the refresh grant (the spec flags it as unverified)
+# and checks that oCIS accepts the resulting token.
+#
+# It is also the pre-flight for the expensive Mac jobs in drive/ios and
+# drive/android: seconds on the Linux runner, instead of finding a broken
+# client registration half an hour into a job on Raul's laptop.
+client-auth:staging:
+  stage: contract
+  image: registry.aity.tech/catalog/library/alpine:3.22
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+  retry:
+    max: 2
+    when: [runner_system_failure, api_failure, unknown_failure]
+  script:
+    - apk add --no-cache python3 >/dev/null
+    - |
+      python3 contract/drive_client_auth.py \
+        --issuer   https://auth.aity.works/realms/aity \
+        --base-url https://drive.aity.works \
+        --environment staging
+
+client-auth:production:
+  stage: contract
+  image: registry.aity.tech/catalog/library/alpine:3.22
+  when: manual
+  allow_failure: true
+  variables:
+    AITY_CONTRACT_USER: $AITY_CONTRACT_USER_PROD
+    AITY_CONTRACT_PASSWORD: $AITY_CONTRACT_PASSWORD_PROD
+  script:
+    - apk add --no-cache python3 >/dev/null
+    - |
+      if [ -z "$AITY_CONTRACT_USER" ]; then
+        echo "No production contract account yet (AITY_CONTRACT_USER_PROD unset)."
+        echo "Create one the same way as staging - meta/contract/README.md - then re-run."
+        exit 1
+      fi
+      python3 contract/drive_client_auth.py \
+        --issuer   https://auth.aity.tech/realms/aity \
+        --base-url https://drive.aity.tech \
+        --environment production
+
 include:
   - local: ci/mirror.yml
 

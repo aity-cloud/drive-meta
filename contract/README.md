@@ -36,6 +36,45 @@ answers "is the server still giving clients what they need"; those answer
    normal behaviour, every client retries), then `DELETE`, so the run
    leaves nothing behind.
 
+## Its companion: `drive_client_auth.py` (Tier 1.5)
+
+The test above authenticates with a **password grant on the `drive` client**,
+because that is the only client the realm allows it on. So it proves nothing
+about `drive-android`, `drive-ios` and `drive-desktop` - the three public
+clients the apps themselves use, and the ones a broken tofu apply would take
+out.
+
+`drive_client_auth.py` walks the real thing for each of them: authorization
+request with PKCE S256, the realm's login pages, the redirect back to that
+Client's own redirect URI, the token exchange, one refresh, and finally
+`/graph/v1.0/me/drives` to check oCIS accepts the token. It runs on the Linux
+runner in seconds and is the pre-flight for the expensive Mac jobs in
+`drive/ios` and `drive/android` - much better than finding a broken client
+registration half an hour into a job on Raul's laptop.
+
+Two things it established on the day it was written (2026-08-27):
+
+- **Refresh tokens work** for `drive-ios` and `drive-android`, with rotation.
+  The spec listed this as unverified ("the stock clients are registered with
+  `use_refresh_tokens = false`, which is almost certainly wrong for mobile
+  apps"), so it is now asserted rather than assumed.
+- **`drive-desktop` cannot sign in against staging at all.** The edge answers
+  403 (`Server: istio-envoy`, empty body) to any authorization request whose
+  `redirect_uri` is loopback, which is the only kind the desktop client has;
+  the same request with a non-loopback redirect reaches Keycloak and gets a
+  400. It is reported as KNOWN-BLOCKED rather than failing the job, because
+  it is a tracked gateway defect - `drive/desktop/MAINTAINING.md`, "Sync
+  smoke gap". Remove it from `KNOWN_BLOCKED` the day the WAF rule is fixed.
+
+Two traps it encodes, shared with both UI test suites:
+
+- The realm's browser flow is **identity-first**: page 1 (`login-username`)
+  takes the email, page 2 (`login`) takes the password. Posting both at once
+  silently redisplays page 1 with no error message.
+- The login page is a **React app** (the Keycloakify `aity` theme), so there
+  is no server-rendered `<form>`; the POST target is
+  `kcContext.url.loginAction`, embedded in the bootstrap script.
+
 ## Running it
 
 ```sh
@@ -51,11 +90,18 @@ image.
 
 ## In CI
 
-- `contract:staging` runs on every push to `main`, on the schedule, and
-  manually from the UI.
-- `contract:production` is **manual** and needs `AITY_CONTRACT_USER_PROD` /
-  `AITY_CONTRACT_PASSWORD_PROD`; it signs in as a real user and writes a
-  file, so a human decides when.
+- `contract:staging` and `client-auth:staging` run on every push to `main`,
+  on the schedule, and manually from the UI.
+- `contract:production` and `client-auth:production` are **manual** and need
+  `AITY_CONTRACT_USER_PROD` / `AITY_CONTRACT_PASSWORD_PROD`; they sign in as
+  a real user (and the contract test writes a file), so a human decides when.
+
+```sh
+python3 contract/drive_client_auth.py \
+  --issuer   https://auth.aity.works/realms/aity \
+  --base-url https://drive.aity.works \
+  --environment staging
+```
 
 ## The test account
 
