@@ -74,7 +74,13 @@ CLIENTS = {
 # (drive/desktop/MAINTAINING.md, "Sync smoke gap"). Until that is fixed the
 # job would be permanently red for a known, tracked reason, which trains
 # people to ignore it. It is reported loudly and does not fail the run.
-KNOWN_BLOCKED = {"drive-desktop"}
+# Was {"drive-desktop"}: the staging gateway 403'd every loopback redirect,
+# so the desktop client could not sign in at all. Fixed 2026-08-27 by adding
+# the 10023/10024 WAF twin to gateway-external-staging and listing the drive
+# ids on both gateways (infra/harvester-cluster platform/istio). All three
+# clients are expected to pass now - if one blocks again, fix the gateway
+# rather than re-adding it here.
+KNOWN_BLOCKED: set[str] = set()
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
