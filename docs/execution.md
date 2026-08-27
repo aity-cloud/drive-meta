@@ -19,7 +19,7 @@ stops those containers.)
 | S2 Desktop factory | `drive/desktop` | DONE (Linux path) 2026-08-25 | pipeline 2788769001 green: branded AppImages both Environments, smoke PASS, mirror live; zero patches; Windows waits on minutes, macOS on the Mac runner |
 | S3 Keycloak clients + DRIVE brand | `infra/keycloak`, `keycloak/themes` | DONE 2026-08-25 | clients + phone requirement + .14 theme LIVE and verified in BOTH environments |
 | S4 Renovate + CI docs | `drive/meta` | DONE 2026-08-25 | weekly sweep live (schedule 4405201, Mon 06:15 EET); nothing further |
-| S5 iOS factory (authoring) | `drive/ios` | DONE 2026-08-25 | main `adf5836` (despeckled assets), lint+mirror green; Xcode side awaits the Mac runner |
+| S5 iOS factory | `drive/ios` | BUILDS ON A REAL MAC 2026-08-27 | simulator smoke GREEN on the runner (job 16140937726); three factory bugs fixed; signing/TestFlight still needs the Apple team |
 | S6 Discovery surfaces | `aity-platform` (branch `drive-apps-card`) | REBASED onto 2.x main, awaiting cluster slot | branch `04d86cd3` on 8dc1df3a, Go tests green; official e2e run needs aity-bf's cluster slot; then Raul's merge call |
 | Later | `drive-theme`, aity.ro | HELD | store links only when real listing URLs exist |
 | Coordination | `infra/harvester-cluster` | FROZEN for us | aity-bf's staging/prod schema cutover in progress; no promotions (incl. the WAF exclusion) until they report done |
@@ -65,6 +65,37 @@ WAF loosening on an auth endpoint is Raul's decision): scoped exclusion
 of those two rule ids for GET on that exact path on the staging gateway
 in platform/istio values, mirroring the existing scoped /admin/realms/
 exclusion pattern in gate TROUBLESHOOTING.md.
+
+## First Mac-runner run - 2026-08-27
+
+Raul registered his MacBook Air as the `macos` group runner (55598729,
+darwin/arm64, protected, locked). The iOS simulator smoke went from
+never-executed to GREEN in four iterations, each a real factory bug:
+
+1. `ensure_xcode_version` needs the abandoned `xcode-install` gem, absent
+   from the Pin's Gemfile - the lane died at the guard (`9a220fe`
+   replaces it with a gem-free comparison).
+2. `xcodebuild | tee` blew GitLab's 4 MB job-log cap, truncating the job
+   before the error was visible - the log now goes to a file shipped as an
+   artifact, with error lines printed on failure; the simulator build also
+   stopped building both arm64 and x86_64 (`5c5e89a`).
+3. THE REAL ONE: the Action Extension kept
+   `com.owncloud.ios-app.ownCloud-Action-Extension` and Xcode refused the
+   embedded binary. Every target takes its id from
+   `PRODUCT_BUNDLE_IDENTIFIER`, and `update_app_identifier` decides by
+   reading `CFBundleIdentifier` from the plist - which that extension's
+   plist does not define at this Pin. The lane now sets the build setting
+   per target and fails if a mapped target is missing (`c276f21`).
+
+Green run proves for real: materialize, the whole identity transcription
+(URL schemes, 7 target ids, app group, generated appicon), the unsigned
+simulator build, `simctl install` of `tech.aity.drive.staging` and the
+XCUITest smoke. Still unverified: everything signing (match, gym, pilot,
+deliver, notarisation).
+
+Android's `smoke:emulator` "failure" on the same runner is deliberate
+scaffolding (exits 1 so it cannot fake a green smoke) until the
+instrumented test exists.
 
 ## Stream reports
 
