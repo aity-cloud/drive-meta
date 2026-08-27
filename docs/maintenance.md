@@ -38,6 +38,32 @@ store policy notice).
 | Standing rule | Never more than one upstream minor behind on any Client |
 | Store metadata/policy change (privacy labels, target SDK, Xcode minimum) | Handled in the next Bump, or a `-aity-<n+1>` re-release if no Bump is due |
 
+## The test tiers, and what each one is for
+
+Four things run against a real Environment. Know which one to read when
+something is red; they fail for very different reasons.
+
+| Tier | Where | Runs on | Answers |
+|---|---|---|---|
+| 1 server contract | `meta/contract/drive_contract.py`, job `contract:staging` | Linux, every push + hourly schedule | is the SERVER still giving clients what they need? |
+| 1.5 client auth | `meta/contract/drive_client_auth.py`, job `client-auth:staging` | Linux, every push + schedule | can each Client's OWN Keycloak client sign a user in, keep them signed in, and get a token oCIS accepts? |
+| 2 iOS journey | `ios/smoke/AityDriveSmokeUITests`, job `smoke:simulator` | `macos`, manual | does the APP sign in, list the personal space, create and delete? |
+| 2b Android journey | `android/overlay/common/owncloudApp/src/androidTest`, job `smoke:emulator` | `macos`, manual | the same, on Android |
+
+There is deliberately no desktop sync smoke: `desktop/MAINTAINING.md`,
+"Sync smoke gap", has the evidence and the conditions for revisiting it.
+
+Run Tier 1 and 1.5 BEFORE triggering anything on the `macos` runner. They
+take seconds on the Linux runner and they fail for the reasons a UI test
+would otherwise take half an hour of Raul's laptop to discover.
+
+Two facts both UI tiers depend on, so a change to either breaks both at once:
+
+- the realm's browser flow is IDENTITY-FIRST (email page, then password
+  page), and
+- the login page is a React app (the Keycloakify `aity` theme), with no
+  server-rendered form.
+
 ## Per-Bump checklist
 
 1. Move `UPSTREAM_TAG`; read upstream's changelog for Branding-key changes
@@ -48,7 +74,9 @@ store policy notice).
 3. Materialise locally, open in the IDE once, confirm the branded login
    against `drive.aity.works`.
 4. Tag. The pipeline builds both Environment builds, runs the smoke, and
-   publishes the staging builds to the internal tracks.
+   publishes the staging builds to the internal tracks. On iOS and Android
+   the account-journey smoke is manual and shares one Mac, so trigger it
+   deliberately and read `client-auth:staging` first.
 5. Verify on staging (install from the internal track on a real device),
    then run the manual `promote` job.
 6. Store-side: watch App Store review and Play pre-launch report; the
