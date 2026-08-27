@@ -1,7 +1,7 @@
 # meta has no build; it mirrors itself to github.com/aity-cloud/drive-meta
 # (ADR 0004) and runs the weekly Renovate sweep over the subgroup (M5,
 # renovate/config.js; jobs, variables and schedules in docs/ci.md).
-stages: [mirror, renovate]
+stages: [contract, mirror, renovate]
 
 default:
   tags: [docker, shared]
@@ -10,6 +10,54 @@ workflow:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG
+
+# Tier 1 end-to-end: the server contract the Clients depend on. Runs on
+# every push here, and hourly against staging via the schedule, so a
+# server-side regression is found by a machine instead of by Raul on a
+# phone (which is how the oCIS 8 LDAP break was found - see the script's
+# header). Read-mostly: one file created and deleted in the test user's
+# own space.
+contract:staging:
+  stage: contract
+  image: registry.aity.tech/catalog/library/alpine:3.22
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+  retry:
+    max: 2
+    when: [runner_system_failure, api_failure, unknown_failure]
+  script:
+    - apk add --no-cache python3 >/dev/null
+    - |
+      python3 contract/drive_contract.py \
+        --base-url https://drive.aity.works \
+        --issuer   https://auth.aity.works/realms/aity
+
+# The same contract against PRODUCTION. Manual on purpose: it signs in as a
+# real user and writes a file, so a human decides when. Needs its own
+# credentials (AITY_CONTRACT_USER_PROD / _PASSWORD_PROD) - the staging user
+# does not exist there.
+contract:production:
+  stage: contract
+  image: registry.aity.tech/catalog/library/alpine:3.22
+  when: manual
+  allow_failure: true
+  variables:
+    AITY_CONTRACT_USER: $AITY_CONTRACT_USER_PROD
+    AITY_CONTRACT_PASSWORD: $AITY_CONTRACT_PASSWORD_PROD
+  script:
+    - apk add --no-cache python3 >/dev/null
+    - |
+      if [ -z "$AITY_CONTRACT_USER" ]; then
+        echo "No production contract account yet (AITY_CONTRACT_USER_PROD unset)."
+        echo "Create one the same way as staging - meta/contract/README.md - then re-run."
+        exit 1
+      fi
+      python3 contract/drive_contract.py \
+        --base-url https://drive.aity.tech \
+        --issuer   https://auth.aity.tech/realms/aity
 
 include:
   - local: ci/mirror.yml
