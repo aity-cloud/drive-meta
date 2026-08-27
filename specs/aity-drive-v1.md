@@ -86,8 +86,8 @@ upstream, no Aity commits) is archived with a README pointer.
 | Upstream Pin (at grill time) | `owncloud/android` v4.8.3 | `owncloud/ios-app` v12.7.0 (`ios-sdk` as submodule) | `owncloud/client` v7.1.0 |
 | Licence | GPLv2 | GPLv3 (ADR 0003) | GPL-2.0-or-later |
 | App name | Aity Drive | Aity Drive | Aity Drive |
-| Production id | `tech.aity.drive` | `tech.aity.drive` + `.fileprovider`, `.fileprovider-ui`, `.intents`, `.share`, `.action`; app group `group.tech.aity.drive` | `APPLICATION_REV_DOMAIN tech.aity.drive`, shortname `aitydrive`, executable `aity-drive` |
-| Staging id | `tech.aity.drive.staging` | `tech.aity.drive.staging` (+ same suffixes, group `group.tech.aity.drive.staging`) | shortname `aitydrive-staging`, name "Aity Drive (staging)", own config dir |
+| Production id | `tech.aity.drive` | `tech.aity.drive` + `.fileprovider`, `.fileprovider-ui`, `.intents`, `.share`, `.action`; app group `group.tech.aity.drive` | `APPLICATION_REV_DOMAIN tech.aity.drive.desktop`, shortname `aitydrive`, executable `aity-drive` |
+| Staging id | `tech.aity.drive.staging` | `tech.aity.drive.staging` (+ same suffixes, group `group.tech.aity.drive.staging`) | `tech.aity.drive.desktop.staging`, shortname `aitydrive-staging`, name "Aity Drive (staging)", own config dir |
 | macOS app group | - | - | `<TEAMID>.tech.aity.drive` (`.staging`): macOS 15+ requires Team-ID-prefixed groups or a Developer ID provisioning profile; the Factory ships both |
 | Redirect (prod) | `aitydrive://android.aity.tech` | `aitydrive://ios.aity.tech` | `http://127.0.0.1:*`, `http://localhost:*` |
 | Redirect (staging) | `aitydrive-staging://android.aity.works` | `aitydrive-staging://ios.aity.works` | same loopback |
@@ -182,6 +182,34 @@ fallback is a Windows Server VM on Harvester registered as `windows`.
 | Telemetry | none; store-provided crash statistics only |
 | Desktop | updater on (`APPLICATION_UPDATE_URL` -> mirror Pages feeds); virtual files at upstream default |
 | Colours | brand red-600 `#B80818` family from `meta/brand/` (same palette as aity-ds.css and the drive-theme) |
+
+## macOS: why the desktop client is not an App Store app (2026-08-27)
+
+The desktop client and the iOS app are different codebases and take
+different routes to a Mac:
+
+- The iOS app can be offered on Apple Silicon Macs with one App Store
+  Connect checkbox ("Make this app available on Mac") - same record, same
+  bundle id, same TestFlight build. It is the mobile app, not a sync
+  client.
+- The desktop client cannot go to the Mac App Store at all: the sandbox
+  forbids its Finder integration and arbitrary-filesystem sync, and GPLv2
+  carries no App Store exception (ADR 0003 covers the iOS GPLv3 case only,
+  and the OpenCloud precedent it leans on is iOS). Its channel is a
+  Developer ID signed, notarised download from the Public Mirror's
+  releases, with the built-in updater - no review queue, no device cap.
+  TestFlight is not available for it, since TestFlight serves Mac App
+  Store apps only.
+
+Consequence for identity: the desktop client carries its own bundle id
+(`tech.aity.drive.desktop`, `.desktop.staging`). It used to reuse the iOS
+app's, which on an Apple Silicon Mac - where both can be installed - is a
+LaunchServices collision.
+
+Correction to an earlier reading of Apple's docs: Developer ID is
+restricted by ROLE ("Required role: Account Holder", max 5 certificates),
+NOT by membership type, so the individual account signs and notarises
+macOS builds today; the organisation conversion does not gate it.
 
 ## Store presence
 
