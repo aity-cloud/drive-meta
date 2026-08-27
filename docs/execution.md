@@ -97,6 +97,46 @@ Android's `smoke:emulator` "failure" on the same runner is deliberate
 scaffolding (exits 1 so it cannot fake a green smoke) until the
 instrumented test exists.
 
+## 2026-08-27 end of day
+
+Both TestFlight apps are on **build 51**, processing VALID, and Raul
+confirmed the staging app works on a real device.
+
+Three defects fixed today, all found by the tests rather than by luck:
+
+1. **oCIS 8 LDAP schema** - `ocLastSignInTimestamp` was undefined, so every
+   sign-in threw and `/graph/v1.0/me` answered 500 intermittently.
+   Production had been doing it ~17 times a day since the oCIS 8 upgrade.
+   Applied to both directories by ldapmodify; init schema updated so a
+   rebuild is born correct.
+2. **Embedded framework rename** - our branding renamed
+   ownCloudAppShared, upstream hardcodes and force-unwraps
+   `Bundle(identifier: "com.owncloud.ownCloudAppShared")`, so every SIGNED
+   build trapped seconds after an account connected. The simulator smoke
+   could not see it: framework ids are rewritten in the signing lane, which
+   simulator builds do not run. Frameworks keep upstream's ids now.
+3. **Staging WAF** - the gateway 403'd every loopback OIDC redirect (prod's
+   exception listed only ownCloud's stock ids; staging had no rule at all),
+   so the desktop client could not sign in at all. Both gateways fixed,
+   verified 403 -> 200, production unaffected.
+
+Known gap, deliberately not closed: no test covers a SIGNED build. The
+account-journey smoke runs on the simulator, and anything that only
+happens in the signing path is invisible to it - which is exactly how
+defect 2 shipped. Closing it means running the journey against a signed
+build on a device or via TestFlight.
+
+## Next: macOS (2026-08-28)
+
+The desktop client's macOS path is the open work. Ready for it:
+Developer ID is role-gated (Account Holder), not organisation-gated, so
+the individual account can sign and notarise today; `scripts/sign-macos.sh`
+already does codesign + notarytool + staple and skips loudly without
+credentials; the certificate can be minted by `match developer_id`. Not yet
+done: the Developer ID certificate itself, a first notarised DMG, the
+GitHub Release + update feeds, and a run of `build:macos` on the Mac
+runner (it has never executed).
+
 ## Stream reports
 
 (appended by the orchestrator as agents complete)
