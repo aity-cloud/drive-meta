@@ -302,3 +302,34 @@ group-inherited GITLAB_TOKEN (verified present at aity-cloud group level,
 protected+masked), scanned all five repos, empty factories skipped, zero
 MRs. Mirror workflow confirmed intact; the weekly schedule also re-runs
 the idempotent mirror job as a self-heal (deliberate, documented).
+
+### Edge posture - the Drive answer to "make prod like staging" (2026-08-28)
+
+Checked, because the mail edge alignment raised the same question for
+Drive. **There is nothing to align: the two environments are already
+identical.** `drive.aity.tech` and `drive.aity.works` are both served by
+the nginx ingress (`kube-system/ingress-expose`, 172.29.232.10), both with
+Ingress objects `owncloud/proxy` + `owncloud/theme-nginx` and their
+`-staging` twins, and neither has an HTTPRoute on any istio gateway.
+
+So the finding is not a drift, it is a shared gap: **Drive's data plane
+meets no WAF in either environment.** Drive's AUTH does - the clients go to
+`auth.<env>`, which is on the gateway, and that is why the loopback OIDC
+redirect needed WAF ids 10023/10024 extended with `drive-desktop`,
+`drive-android` and `drive-ios`. Only the oCIS surface itself is uncovered.
+
+Moving it onto the gateway is a real project, not a parity fix, and it
+should not be done casually:
+
+- every sync client speaks WebDAV, so the whole method allowance the mail
+  rule scopes to `/webdav` would apply to the entire host;
+- uploads are large and chunked (TUS), which is exactly the case
+  `gateway-external` deliberately has no `requestBodyMaxBytes` for - see
+  the s3.aity.tech note in `platform/istio/values.yaml`;
+- oCIS holds its own OIDC session, so the gateway's oauth2-proxy would have
+  to bypass the host entirely, which removes the main thing the move buys
+  for other hosts.
+
+Recommendation: leave Drive on nginx for now and revisit after the mail
+flip proves the pattern on a smaller WebDAV surface. Recorded here so the
+next session does not re-derive it.
