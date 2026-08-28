@@ -126,6 +126,27 @@ happens in the signing path is invisible to it - which is exactly how
 defect 2 shipped. Closing it means running the journey against a signed
 build on a device or via TestFlight.
 
+## Finding: the Drive hosts are not behind the WAF (2026-08-28)
+
+Re-probing gateway enforcement after the 2026-08-27 WAF change (prompted by
+the aity-6e session's finding that a gateway restart can leave workers
+silently not inspecting) showed:
+
+- `s3.aity.tech` blocks 3/3 classic payloads - Coraza enforcing, no sign of
+  the partial-mode bug after my rollout.
+- `drive.aity.tech` and `drive.aity.works` answer **200 to all of them**,
+  because they never reach the istio gateway: oCIS, its theme and the
+  office hosts are served by the NGINX ingress controller
+  (`owncloud` / `owncloud-staging`, `ingressClassName: nginx`), so the WAF
+  is not in that path at all. Same for `office.drive.*` and `wc.drive.*`.
+
+Not a regression and not caused by the rule change - it is how the Drive
+stack has always been routed. Recorded because "the estate is WAF'd" is
+not true for the Drive Capability, and that should be a known fact rather
+than an assumption. Whether to change it is Raul's decision: WebDAV
+carries arbitrary file bytes and CRS would fight it, so the honest options
+are a heavily-scoped profile or a deliberate documented exemption.
+
 ## Next: macOS (2026-08-28)
 
 The desktop client's macOS path is the open work. Ready for it:
