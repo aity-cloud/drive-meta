@@ -140,12 +140,21 @@ silently not inspecting) showed:
   (`owncloud` / `owncloud-staging`, `ingressClassName: nginx`), so the WAF
   is not in that path at all. Same for `office.drive.*` and `wc.drive.*`.
 
+Independently verified and WIDENED by the aity-6e session, which now owns
+the write-up: `crate/meta/waf/s3-profile.md` (986fcaa) is the single source
+of truth. Their additions: the un-fronted set also covers
+`office.drive.*`, `wc.drive.*` and **prod's `mail.aity.tech`** - while
+**staging's `mail.aity.works` IS on the istio edge**, so mail is
+inconsistent between environments, which is its own finding against the
+staging-is-identical-to-prod rule. `app.aity.tech` is correctly fronted.
+
 Not a regression and not caused by the rule change - it is how the Drive
 stack has always been routed. Recorded because "the estate is WAF'd" is
 not true for the Drive Capability, and that should be a known fact rather
-than an assumption. Whether to change it is Raul's decision: WebDAV
-carries arbitrary file bytes and CRS would fight it, so the honest options
-are a heavily-scoped profile or a deliberate documented exemption.
+than an assumption. Whether to change it is Raul's decision; the three options are written up
+in their doc: move the Drive hosts onto the istio edge with a heavily
+excluded profile, run modsecurity on the NGINX side, or accept the gap
+explicitly because oCIS authenticates every request.
 
 ## Next: macOS (2026-08-28)
 
