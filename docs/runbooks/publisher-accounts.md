@@ -141,19 +141,47 @@ protected variables are set on drive/android. The script re-creates the
 variables from the repo alone (export `MATCH_PASSWORD`, run it) if they
 are ever lost.
 
+### The service account, as actually clicked (2026-09-02) - the record
+
+Done in the EXISTING GCP project **`aity-tech`** (the one that also holds
+the reCAPTCHA), NOT a dedicated project - one less project to keep alive
+for decades, and the SA's power comes from the Play Console invite, not
+from GCP roles anyway. The exact clicks, for the next app and the next
+decade:
+
+1. console.cloud.google.com, project `aity-tech` > search "Google Play
+   Android Developer API" > Enable.
+2. IAM & Admin > Service Accounts > Create service account, name
+   `play-publisher`, NO GCP roles (skip both optional steps). Result:
+   `play-publisher@aity-tech.iam.gserviceaccount.com`.
+3. The SA > Keys > Add key > Create new key > JSON > download once.
+4. play.google.com/console > Users and permissions > Invite new users >
+   the SA email > ACCOUNT permissions: "Release apps to testing tracks",
+   "Release to production, exclude devices, and use Play App Signing",
+   "Manage testing tracks and edit tester lists", "Manage store
+   presence" > Invite. Account-level so every future app (Aity Business
+   Mail, ...) inherits it with zero extra clicks.
+5. The JSON key now lives as `PLAY_SERVICE_ACCOUNT_JSON` (protected,
+   file type) on drive/android, with an encrypted backup at
+   `drive/certificates/android/play-service-account.json.enc`
+   (passphrase `MATCH_PASSWORD`); the plaintext download was deleted.
+   A future factory just gets its own copy of the variable - same SA.
+
+**Verifying it**: `drive/certificates/android/check-play-access.sh`
+(export `MATCH_PASSWORD`, run it) mints a token and proves the chain
+per app without spending a pipeline. Token minting worked immediately;
+the androidpublisher calls answered 403 on day one - that is the invite
+propagation (up to ~24h) if step 4 is done, or step 4 missing. Rerun
+until both apps report OK (a 404 just means the app entry has no build
+yet - expected before the first upload).
+
 What remains is Raul's, in order:
 
-3. Service account, per step 6 below: GCP project, enable the Play
-   Developer API, create the service account + JSON key, invite it in
-   Play Console with ACCOUNT-LEVEL release permissions so every future
-   app (Aity Business Mail, ...) inherits it.
-4. Set `PLAY_SERVICE_ACCOUNT_JSON` (protected, file type, the JSON
-   verbatim) on the drive/android PROJECT. Future Android factories get
-   their own copy of this variable wherever they live; the service
-   account stays the one from step 3.
-5. In the Play Console UI, create BOTH app entries: `tech.aity.drive`
-   ("Aity Drive") and `tech.aity.drive.staging` ("Aity Drive (staging)").
-   The API cannot create apps.
+5. In the Play Console UI, create BOTH app entries (Home > Create app):
+   name "Aity Drive" / "Aity Drive (staging)", English (US), App, Free,
+   tick the declarations. The API cannot create apps; the package names
+   (`tech.aity.drive` / `.staging`) bind at the first upload, nothing to
+   type here.
 6. Cut the release tag (`v4.8.3-aity-1`) on drive/android, run the
    `smoke:emulator` job and the real-device pass
    (`drive/android/MAINTAINING.md`, "Real-device pass"), then trigger
