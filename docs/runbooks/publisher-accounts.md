@@ -169,11 +169,16 @@ decade:
 
 **Verifying it**: `drive/certificates/android/check-play-access.sh`
 (export `MATCH_PASSWORD`, run it) mints a token and proves the chain
-per app without spending a pipeline. Token minting worked immediately;
-the androidpublisher calls answered 403 on day one - that is the invite
-propagation (up to ~24h) if step 4 is done, or step 4 missing. Rerun
-until both apps report OK (a 404 just means the app entry has no build
-yet - expected before the first upload).
+per app without spending a pipeline. Learned 2026-09-02: with the SA
+showing ACTIVE in Users and permissions, a persistent 403 is NOT
+propagation - a package name binds to its app entry only at the FIRST
+upload, and Google answers 403 for unknown packages (never 404, to
+avoid leaking what exists). So for every brand-new app the sequence is
+forced: create the app entry, HAND-UPLOAD the first CI-built AAB in the
+Console UI (this also registers its signing cert as the upload key),
+and only then does the API - and the publish jobs - work for that
+package. Rerun the checker after the first upload; both apps reporting
+OK is the green light for the pipeline buttons.
 
 What remains is Raul's, in order:
 
