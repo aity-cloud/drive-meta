@@ -124,6 +124,53 @@ Per-app metadata the reviewer will check (App Store Connect):
 
 ## 3. Google Play Console (organisation)
 
+### State 2026-09-02: the org account EXISTS - Raul's remaining checklist
+
+The account-creation steps below are DONE. Machine-side preparation is also
+done: the upload keystore is generated (PKCS12, alias `upload`, RSA 4096,
+~30y) and lives ENCRYPTED in `drive/certificates/android/` (passphrase:
+`MATCH_PASSWORD`); `v*` tags on drive/android are protected (they were not,
+and protected variables never reach unprotected refs - check that first on
+every new Factory); the android build decodes the keystore variable from
+base64 (CI variables are text, a raw binary JKS gets mangled).
+
+What remains is Raul's, in order:
+
+1. In the `drive/certificates` checkout: commit and push the untracked
+   `android/` directory (the encrypted keystore + `set-ci-variables.sh`;
+   the agent classifier refuses to commit key material).
+2. Run `drive/certificates/android/set-ci-variables.sh` with
+   `MATCH_PASSWORD` exported - it decrypts from the repo and sets the four
+   `ANDROID_UPLOAD_KEYSTORE*` protected variables on drive/android.
+   Everything it needs is in git; no scratch files anywhere.
+3. Service account, per step 6 below: GCP project, enable the Play
+   Developer API, create the service account + JSON key, invite it in
+   Play Console with ACCOUNT-LEVEL release permissions so every future
+   app (Aity Business Mail, ...) inherits it.
+4. Set `PLAY_SERVICE_ACCOUNT_JSON` (protected, file type, the JSON
+   verbatim) on the drive/android PROJECT. Future Android factories get
+   their own copy of this variable wherever they live; the service
+   account stays the one from step 3.
+5. In the Play Console UI, create BOTH app entries: `tech.aity.drive`
+   ("Aity Drive") and `tech.aity.drive.staging` ("Aity Drive (staging)").
+   The API cannot create apps.
+6. Cut the release tag (`v4.8.3-aity-1`) on drive/android, run the
+   `smoke:emulator` job and the real-device pass
+   (`drive/android/MAINTAINING.md`, "Real-device pass"), then trigger
+   `publish-staging` (staging app -> internal track) and `promote`
+   (production app -> production, draft). First-upload caveat: fastlane
+   documents that a brand-new app's first build must be uploaded by hand
+   in the Console; the deploy lane's `release_status: draft` is reported
+   to work anyway. Try the job first; if the API refuses with app/package
+   not found, upload the CI-BUILT AAB from the pipeline artifacts once
+   through the Console UI (still CI's artifact - the no-manual-BUILD rule
+   holds) and use the jobs from then on.
+7. Before the production listing can go PUBLIC (internal track needs
+   none of this): 2+ phone screenshots (`fastlane/metadata` holds only
+   `.gitkeep`s), 1024x500 feature graphic, IARC content rating, data
+   safety form. Listing texts (en-US, ro) and the privacy policy URL
+   already exist.
+
 References: https://support.google.com/googleplay/android-developer/answer/13628312 ,
 https://support.google.com/googleplay/android-developer/answer/10840893 ,
 https://support.google.com/googleplay/android-developer/answer/14177239
@@ -221,7 +268,7 @@ factory projects (never the mirrors, never the meta repo):
 |---|---|---|
 | `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (file) | ios, desktop | step 2.4 |
 | `MATCH_PASSWORD`, `MATCH_GIT_PRIVATE_KEY` (file; deploy key on `drive/certificates`) | ios, desktop | step 2.6 |
-| `ANDROID_UPLOAD_KEYSTORE` (file), `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, `ANDROID_UPLOAD_KEY_ALIAS`, `ANDROID_UPLOAD_KEY_PASSWORD` | android | generated once with `keytool`, backed up in Raul's password manager |
+| `ANDROID_UPLOAD_KEYSTORE` (file, BASE64 of the .jks), `ANDROID_UPLOAD_KEYSTORE_PASSWORD`, `ANDROID_UPLOAD_KEY_ALIAS`, `ANDROID_UPLOAD_KEY_PASSWORD` | android | generated 2026-09-02; encrypted backup + `set-ci-variables.sh` in `drive/certificates/android/` (passphrase `MATCH_PASSWORD`) |
 | `PLAY_SERVICE_ACCOUNT_JSON` (file) | android | step 3.6 |
 | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | desktop | step 4.5 |
 | `GITHUB_MIRROR_KEY` (file) | all four | `scripts/mint-mirror-keys.sh` (done) |
@@ -238,6 +285,8 @@ factory projects (never the mirrors, never the meta repo):
 - [ ] Apple account CONVERTED to organisation (in progress); DSA trader + EU invoicing set
 - [ ] App Store Connect Team API key in CI variables
 - [ ] Identifiers + app groups registered; match store bootstrapped
-- [ ] Google Play organisation verified; service account invited
+- [x] Google Play organisation verified (2026-09-02)
+- [x] Android upload keystore generated + encrypted in drive/certificates; v* tags protected on drive/android (2026-09-02)
+- [ ] Play service account created + invited; `PLAY_SERVICE_ACCOUNT_JSON` and `ANDROID_UPLOAD_KEYSTORE*` variables set; both app entries created (the section-3 checklist)
 - [ ] Azure Artifact Signing identity validated; certificate profile + service principal
 - [x] GitHub mirrors wired with per-repo deploy keys (2026-08-25)
