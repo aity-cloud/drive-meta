@@ -15,9 +15,9 @@ reasons in `docs/adr/`.
     UPSTREAM_TAG: "v4.8.3"
   ```
 
-- Renovate CE runs weekly from this repo (`renovate/config.js`,
-  `autodiscoverFilter: ['aity-cloud/drive/*']`, scheduled pipeline with
-  `RENOVATE=true`), same job shape and token rules as `crate/meta`.
+- Renovate CE runs DAILY over the whole estate from
+  `aity-cloud/infra/estate-updates` (retired from this repo 2026-09-02);
+  the drive rules live there as repo-scoped `packageRules`.
 - A Renovate MR on `UPSTREAM_TAG` is a SIGNAL that upstream released, not a
   mergeable change. The Bump is a human act: read the upstream release
   notes, move the Pin, re-validate every Patch (drop the ones upstream

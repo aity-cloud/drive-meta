@@ -15,12 +15,13 @@ meta has no build; its pipeline is two jobs:
   deploy key `GITHUB_MIRROR_KEY`. Runs on main pushes and on tags; MR
   pipelines never mirror; if the key variable is absent the job does not
   exist at all. CI is the ONLY writer of a Public Mirror (ADR 0004).
-- **renovate**: self-hosted Renovate CE sweep over `aity-cloud/drive/*`
-  (`renovate/config.js`). Runs on the weekly schedule that sets
-  `RENOVATE=true`, or played manually from a web pipeline on `main`;
-  never on plain pushes. The scheduled pipeline re-runs `mirror:github`
-  too - an idempotent re-push of refs GitHub already has, kept as a
-  weekly self-heal of the mirror.
+- **renovate**: RETIRED HERE 2026-09-02. One estate-wide Renovate now
+  sweeps the whole `aity-cloud` group DAILY from
+  `aity-cloud/infra/estate-updates`; this subgroup's rules moved there as
+  repo-scoped `packageRules`, including the ADR 0001 restriction that a
+  Factory only ever moves CI job images, fastlane Gemfiles and annotated
+  Pins. Nothing about what Renovate proposes here changed - only where it
+  runs from, and how often.
 
 What Renovate proposes across the subgroup: CI job image bumps
 (gitlabci), fastlane bumps through the android/ios Factories' Gemfiles
