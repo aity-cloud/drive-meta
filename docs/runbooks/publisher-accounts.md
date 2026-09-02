@@ -134,15 +134,15 @@ and protected variables never reach unprotected refs - check that first on
 every new Factory); the android build decodes the keystore variable from
 base64 (CI variables are text, a raw binary JKS gets mangled).
 
+DONE 2026-09-02 (with Raul's explicit authorization in chat): the
+encrypted keystore + `set-ci-variables.sh` are pushed in
+`drive/certificates/android/`, and the four `ANDROID_UPLOAD_KEYSTORE*`
+protected variables are set on drive/android. The script re-creates the
+variables from the repo alone (export `MATCH_PASSWORD`, run it) if they
+are ever lost.
+
 What remains is Raul's, in order:
 
-1. In the `drive/certificates` checkout: commit and push the untracked
-   `android/` directory (the encrypted keystore + `set-ci-variables.sh`;
-   the agent classifier refuses to commit key material).
-2. Run `drive/certificates/android/set-ci-variables.sh` with
-   `MATCH_PASSWORD` exported - it decrypts from the repo and sets the four
-   `ANDROID_UPLOAD_KEYSTORE*` protected variables on drive/android.
-   Everything it needs is in git; no scratch files anywhere.
 3. Service account, per step 6 below: GCP project, enable the Play
    Developer API, create the service account + JSON key, invite it in
    Play Console with ACCOUNT-LEVEL release permissions so every future
