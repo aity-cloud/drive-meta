@@ -167,6 +167,27 @@ decade:
    (passphrase `MATCH_PASSWORD`); the plaintext download was deleted.
    A future factory just gets its own copy of the variable - same SA.
 
+**OPEN 2026-09-04: the API has answered 403 for 48h and publishing is
+manual until it clears.** Diagnostic that narrowed it: probe an endpoint
+from a DIFFERENT permission family (`reviews.list`) beside
+`edits.insert` - if both 403 identically, no individual grant is wrong,
+the service account has no effective link to the developer account at
+all, and re-ticking checkboxes is wasted effort. Suspects, in order:
+(1) the developer account itself is not fully activated/verified - a
+brand-new org account cannot distribute, which ALSO explains testers
+seeing "this item isn't available" on a rolled-out internal release, so
+one cause covers both symptoms; (2) a legacy `Settings > API access`
+page that still wants its own "Grant access" click; (3) a stuck invite,
+cured by remove + re-invite. If the account shows verified and all
+three are exhausted, the escalation is a Play Console support ticket -
+not more waiting.
+
+**This blocks nothing structural.** The publish jobs no-op loudly by
+design, releases keep building and signing on tags, and their AABs are
+downloadable from the pipeline; a human uploads them in the Console
+until the API works. Device testing needs no Play at all - sideload the
+release-signed staging APK.
+
 **Verifying it**: `drive/certificates/android/check-play-access.sh`
 (export `MATCH_PASSWORD`, run it) mints a token and proves the chain
 per app without spending a pipeline. Learned 2026-09-02: with the SA
