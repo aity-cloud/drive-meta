@@ -265,6 +265,63 @@ https://support.google.com/googleplay/android-developer/answer/14177239
    email and phone on Play; a dedicated Play Console DSA article could not
    be located (unverified) - check the account's business information page.
 
+### THE ANSWER to a 3-day 403 hunt: a DRAFT app refuses the API (2026-09-04)
+
+`play-publisher` was configured perfectly and every androidpublisher call
+still answered a terse 403 for 3 days. Cause: **an app in Play Console's
+"Draft app" state is invisible to the Play Developer API.** Uploading an
+AAB by hand to internal testing is NOT enough - the APP leaves Draft only
+when its setup tasks are complete and it has been published/reviewed
+once. Until then the API denies everything, which is why the denial was
+uniform across permission families and immune to re-invites.
+
+Recognise it instantly next time: the app's Dashboard says "Draft app"
+and "Your temporary app name is 'tech.aity.drive (unreviewed)'". If you
+see that, stop debugging the service account - it is not the problem.
+
+What proved the SA was innocent (keep these probes, they are cheap):
+
+- the key mints a token and `oauth2/tokeninfo` shows the right scope and
+  client id;
+- Google's OWN client library (`google-api-python-client`) returns the
+  identical 403, so no hand-rolled request is at fault;
+- a control call to an API that really is disabled returns a VERBOSE
+  `SERVICE_DISABLED` naming the project, proving by contrast that
+  androidpublisher is enabled;
+- the 403 hits every permission family (`reviews.list` as well as
+  `edits.insert`), which no single missing checkbox could cause.
+
+### Taking an app from Draft to published: the setup tasks and OUR answers
+
+Every item below is mandatory for ANY public release, so none of it is
+wasted on unblocking the API. Play Console > the app > Dashboard >
+"Set up your app". Answers are the house position for a business file
+client; the same set fits Aity Business Mail with the nouns changed.
+
+| Task | Our answer |
+|---|---|
+| Privacy policy | `https://aity.tech/documents/privacy/` |
+| App access / sign-in details | ALL functionality requires an account. Provide a permanent review account on the PRODUCTION server plus a note that registration happens outside the app. |
+| Ads | No ads. |
+| Content rating | Category "Utility, Productivity, Communication or Other". Everything (violence, sexuality, profanity, drugs, gambling) = No. Say YES to users being able to share content/files: sharing is inside the customer's own organisation, and answering No here is a false declaration. Expect PEGI 3 / Everyone. |
+| Target audience | 18+ only; not appealing to children; no child-directed content. |
+| Data safety | Collected AND transmitted: files/documents the user uploads (app functionality; user can request deletion), name + email (account management). Not shared with third parties, not used for ads or tracking. Encrypted in transit (TLS enforced, `enforce_secure_connection`). No advertising or analytics SDKs at all - the app ships upstream ownCloud's data flows only. |
+| Government apps | No. |
+| Financial features | None. |
+| Health | No health features. |
+| Category + contact | Category Productivity; email `office@aity.ro`, website `https://aity.ro`, phone from the identity table above. |
+| Store listing texts | Already in the repo: `fastlane/metadata/android/{en-US,ro}/`. `fastlane android metadata` uploads them once the API works. |
+
+Assets still to produce (the only genuinely missing pieces):
+
+- **App icon 512x512 PNG** - regenerate from the brand master.
+- **Feature graphic 1024x500 PNG** - brand mark on the red-600 field.
+- **>=2 phone screenshots** (min 1080 px on the short side). Cheapest
+  honest source: capture them ON THE PHONE during the real-device pass,
+  which happens anyway. Do NOT boot an emulator on the workstation while
+  the shared dev VM is up - 48 GiB of a 60 GiB host is already spoken
+  for and the OOM killer takes the cluster, not the emulator.
+
 ## 4. Windows code signing
 
 Chosen: **Azure Artifact Signing** (the renamed Azure Trusted Signing;
